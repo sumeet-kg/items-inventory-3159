@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import DashboardLayout from "@/components/dashboard-layout";
 import { useItems, Item } from "@/context/items-context";
 import { Button } from "@/components/ui/button";
@@ -36,50 +36,85 @@ const emptyFormData: ItemFormData = {
 };
 
 const TablePage = () => {
-  const { items, addItem, updateItem, deleteItem } = useItems();
+  const { items, isLoading, error, addItem, updateItem, deleteItem, refreshItems } = useItems();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<Item | null>(null);
   const [formData, setFormData] = useState<ItemFormData>(emptyFormData);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+
+  // Load items when component mounts
+  useEffect(() => {
+    refreshItems();
+  }, [refreshItems]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleAddSubmit = (e: React.FormEvent) => {
+  const handleAddSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    addItem({
-      name: formData.name,
-      description: formData.description,
-      price: parseFloat(formData.price) || 0,
-      quantity: parseInt(formData.quantity) || 0,
-    });
-    setFormData(emptyFormData);
-    setIsAddDialogOpen(false);
+    setIsSubmitting(true);
+    setFormError(null);
+    
+    try {
+      await addItem({
+        name: formData.name,
+        description: formData.description,
+        price: parseFloat(formData.price) || 0,
+        quantity: parseInt(formData.quantity) || 0,
+      });
+      setFormData(emptyFormData);
+      setIsAddDialogOpen(false);
+    } catch (err) {
+      setFormError(err instanceof Error ? err.message : 'Failed to add item');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const handleEditSubmit = (e: React.FormEvent) => {
+  const handleEditSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedItem) return;
     
-    updateItem(selectedItem.id, {
-      name: formData.name,
-      description: formData.description,
-      price: parseFloat(formData.price) || 0,
-      quantity: parseInt(formData.quantity) || 0,
-    });
-    setFormData(emptyFormData);
-    setSelectedItem(null);
-    setIsEditDialogOpen(false);
+    setIsSubmitting(true);
+    setFormError(null);
+    
+    try {
+      await updateItem(selectedItem.id, {
+        name: formData.name,
+        description: formData.description,
+        price: parseFloat(formData.price) || 0,
+        quantity: parseInt(formData.quantity) || 0,
+      });
+      setFormData(emptyFormData);
+      setSelectedItem(null);
+      setIsEditDialogOpen(false);
+    } catch (err) {
+      setFormError(err instanceof Error ? err.message : 'Failed to update item');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const handleDeleteConfirm = () => {
+  const handleDeleteConfirm = async () => {
     if (!selectedItem) return;
-    deleteItem(selectedItem.id);
-    setSelectedItem(null);
-    setIsDeleteDialogOpen(false);
+    
+    setIsSubmitting(true);
+    setFormError(null);
+    
+    try {
+      await deleteItem(selectedItem.id);
+      setSelectedItem(null);
+      setIsDeleteDialogOpen(false);
+    } catch (err) {
+      setFormError(err instanceof Error ? err.message : 'Failed to delete item');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const openEditDialog = (item: Item) => {
@@ -90,11 +125,13 @@ const TablePage = () => {
       price: item.price.toString(),
       quantity: item.quantity.toString(),
     });
+    setFormError(null);
     setIsEditDialogOpen(true);
   };
 
   const openDeleteDialog = (item: Item) => {
     setSelectedItem(item);
+    setFormError(null);
     setIsDeleteDialogOpen(true);
   };
 
@@ -119,6 +156,7 @@ const TablePage = () => {
           <Button 
             onClick={() => {
               setFormData(emptyFormData);
+              setFormError(null);
               setIsAddDialogOpen(true);
             }}
             className="transition-all hover:scale-[1.02] active:scale-[0.98]"
@@ -129,6 +167,18 @@ const TablePage = () => {
             Add Item
           </Button>
         </div>
+
+        {/* Error state */}
+        {error && (
+          <div className="mb-6 p-4 rounded-lg bg-destructive/10 border border-destructive/20">
+            <p className="text-sm text-destructive flex items-center gap-2">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              {error}
+            </p>
+          </div>
+        )}
 
         {/* Table */}
         <div className="rounded-lg border border-border bg-card overflow-hidden">
@@ -144,10 +194,27 @@ const TablePage = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {items.length === 0 ? (
+              {isLoading ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="h-32 text-center">
+                    <div className="flex items-center justify-center gap-2 text-muted-foreground">
+                      <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                      </svg>
+                      Loading items...
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ) : items.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={6} className="h-32 text-center text-muted-foreground">
-                    No items yet. Click "Add Item" to get started.
+                    <div className="space-y-2">
+                      <svg className="w-10 h-10 mx-auto text-muted-foreground/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                      </svg>
+                      <p>No items yet. Click "Add Item" to get started.</p>
+                    </div>
                   </TableCell>
                 </TableRow>
               ) : (
@@ -211,6 +278,11 @@ const TablePage = () => {
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleAddSubmit}>
+              {formError && (
+                <div className="mb-4 p-3 rounded-lg bg-destructive/10 border border-destructive/20">
+                  <p className="text-sm text-destructive">{formError}</p>
+                </div>
+              )}
               <div className="space-y-4 py-4">
                 <div className="space-y-2">
                   <Label htmlFor="name">Name</Label>
@@ -267,7 +339,19 @@ const TablePage = () => {
                 <Button type="button" variant="outline" onClick={() => setIsAddDialogOpen(false)}>
                   Cancel
                 </Button>
-                <Button type="submit">Add Item</Button>
+                <Button type="submit" disabled={isSubmitting}>
+                  {isSubmitting ? (
+                    <span className="flex items-center gap-2">
+                      <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                      </svg>
+                      Adding...
+                    </span>
+                  ) : (
+                    "Add Item"
+                  )}
+                </Button>
               </DialogFooter>
             </form>
           </DialogContent>
@@ -283,6 +367,11 @@ const TablePage = () => {
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleEditSubmit}>
+              {formError && (
+                <div className="mb-4 p-3 rounded-lg bg-destructive/10 border border-destructive/20">
+                  <p className="text-sm text-destructive">{formError}</p>
+                </div>
+              )}
               <div className="space-y-4 py-4">
                 <div className="space-y-2">
                   <Label htmlFor="edit-name">Name</Label>
@@ -339,7 +428,19 @@ const TablePage = () => {
                 <Button type="button" variant="outline" onClick={() => setIsEditDialogOpen(false)}>
                   Cancel
                 </Button>
-                <Button type="submit">Save Changes</Button>
+                <Button type="submit" disabled={isSubmitting}>
+                  {isSubmitting ? (
+                    <span className="flex items-center gap-2">
+                      <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                      </svg>
+                      Saving...
+                    </span>
+                  ) : (
+                    "Save Changes"
+                  )}
+                </Button>
               </DialogFooter>
             </form>
           </DialogContent>
@@ -354,12 +455,32 @@ const TablePage = () => {
                 Are you sure you want to delete "{selectedItem?.name}"? This action cannot be undone.
               </DialogDescription>
             </DialogHeader>
+            {formError && (
+              <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20">
+                <p className="text-sm text-destructive">{formError}</p>
+              </div>
+            )}
             <DialogFooter className="mt-4">
               <Button type="button" variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
                 Cancel
               </Button>
-              <Button type="button" variant="destructive" onClick={handleDeleteConfirm}>
-                Delete
+              <Button 
+                type="button" 
+                variant="destructive" 
+                onClick={handleDeleteConfirm}
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? (
+                  <span className="flex items-center gap-2">
+                    <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                    </svg>
+                    Deleting...
+                  </span>
+                ) : (
+                  "Delete"
+                )}
               </Button>
             </DialogFooter>
           </DialogContent>
