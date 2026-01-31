@@ -150,7 +150,7 @@ const TablePage = () => {
           <div>
             <h1 className="text-2xl font-semibold tracking-tight">Items</h1>
             <p className="text-muted-foreground mt-1">
-              Manage your inventory items
+              Manage your items
             </p>
           </div>
           <Button 
