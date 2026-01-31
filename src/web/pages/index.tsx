@@ -1,72 +1,146 @@
-// TODO(agent): This is a temporary "under construction" page.
-// Replace the entire contents of this file with the actual index page implementation
-// as instructed by the user. Delete this comment and the placeholder UI below.
+import { useState } from "react";
+import { useLocation } from "wouter";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
 
-import { useState, useEffect } from "react";
+const Index = () => {
+  const [, navigate] = useLocation();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
-const AGENT_THOUGHTS = [
-	"Crafting the perfect landing page",
-	"Fine-tuning the color palette",
-	"Making buttons actually clickable",
-	"Ensuring it works on your phone too",
-	"Adding just the right amount of whitespace",
-	"Teaching forms to be polite",
-	"Making the logo pixel-perfect",
-	"Optimizing for speed (patience, ironic)",
-	"Writing code that future-me won't hate",
-	"Building something worth the wait",
-];
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    
+    // Simulate login delay for visual feedback
+    await new Promise(resolve => setTimeout(resolve, 800));
+    
+    // Accept any credentials
+    navigate("/dashboard");
+  };
 
-function Index() {
-	const [thoughtIndex, setThoughtIndex] = useState(0);
+  return (
+    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
+      {/* Background grid pattern */}
+      <div 
+        className="absolute inset-0 opacity-[0.03]"
+        style={{
+          backgroundImage: `
+            linear-gradient(oklch(0.75 0.18 175) 1px, transparent 1px),
+            linear-gradient(90deg, oklch(0.75 0.18 175) 1px, transparent 1px)
+          `,
+          backgroundSize: '60px 60px'
+        }}
+      />
+      
+      {/* Glow orb behind card */}
+      <div 
+        className="absolute w-[500px] h-[500px] rounded-full animate-glow-pulse"
+        style={{
+          background: 'radial-gradient(circle, oklch(0.75 0.18 175 / 0.15) 0%, transparent 70%)',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)'
+        }}
+      />
 
-	useEffect(() => {
-		const interval = setInterval(() => {
-			setThoughtIndex((prev) => (prev + 1) % AGENT_THOUGHTS.length);
-		}, 3000);
-		return () => clearInterval(interval);
-	}, []);
+      <Card className="w-full max-w-md relative z-10 animate-slide-up border-border/50 shadow-2xl shadow-primary/5">
+        <CardHeader className="space-y-1 text-center pb-8">
+          {/* Logo/Brand */}
+          <div className="mx-auto mb-4 w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center animate-float">
+            <svg 
+              className="w-6 h-6 text-primary" 
+              fill="none" 
+              stroke="currentColor" 
+              viewBox="0 0 24 24"
+            >
+              <path 
+                strokeLinecap="round" 
+                strokeLinejoin="round" 
+                strokeWidth={2} 
+                d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" 
+              />
+            </svg>
+          </div>
+          <CardTitle className="text-2xl font-semibold tracking-tight">
+            Welcome back
+          </CardTitle>
+          <CardDescription className="text-muted-foreground">
+            Sign in to manage your inventory
+          </CardDescription>
+        </CardHeader>
+        
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <div className="space-y-2 animate-slide-up opacity-0 delay-100">
+              <Label htmlFor="email" className="text-sm font-medium">
+                Email
+              </Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="name@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                className="h-11 bg-input/50 border-border/50 focus:bg-input/80 transition-colors"
+              />
+            </div>
+            
+            <div className="space-y-2 animate-slide-up opacity-0 delay-200">
+              <Label htmlFor="password" className="text-sm font-medium">
+                Password
+              </Label>
+              <Input
+                id="password"
+                type="password"
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                className="h-11 bg-input/50 border-border/50 focus:bg-input/80 transition-colors"
+              />
+            </div>
 
-	return (
-		<div className="min-h-screen bg-[#f5f5f5] flex flex-col items-center justify-center p-8">
+            <Button 
+              type="submit" 
+              className="w-full h-11 font-medium animate-slide-up opacity-0 delay-300 transition-all hover:scale-[1.02] active:scale-[0.98]"
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <span className="flex items-center gap-2">
+                  <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                  </svg>
+                  Signing in...
+                </span>
+              ) : (
+                "Login"
+              )}
+            </Button>
+          </form>
 
-			<h1 className="text-[clamp(2.5rem,10vw,6rem)] font-black tracking-[-0.03em] text-black leading-none mb-10 text-center">
-				Under
-				<br />
-				Construction
-			</h1>
+          <div className="mt-6 text-center animate-slide-up opacity-0 delay-400">
+            <p className="text-sm text-muted-foreground">
+              Use any credentials to continue
+            </p>
+          </div>
+        </CardContent>
+      </Card>
 
-			{/* Agent thought with shimmer */}
-			<div className="h-8 flex items-center justify-center">
-				<p className="text-base md:text-lg shimmer-text italic">
-					"{AGENT_THOUGHTS[thoughtIndex]}"
-				</p>
-			</div>
-
-			<style>{`
-				.shimmer-text {
-					background: linear-gradient(
-						90deg,
-						#737373 0%,
-						#737373 40%,
-						#d4d4d4 50%,
-						#737373 60%,
-						#737373 100%
-					);
-					background-size: 200% 100%;
-					-webkit-background-clip: text;
-					background-clip: text;
-					-webkit-text-fill-color: transparent;
-					animation: shimmer 2s ease-in-out infinite;
-				}
-
-				@keyframes shimmer {
-					0% { background-position: 100% 0; }
-					100% { background-position: -100% 0; }
-				}
-			`}</style>
-		</div>
-	);
-}
+      {/* Corner accent */}
+      <div 
+        className="absolute bottom-0 right-0 w-64 h-64 opacity-30"
+        style={{
+          background: 'radial-gradient(circle at bottom right, oklch(0.75 0.18 175 / 0.2) 0%, transparent 70%)'
+        }}
+      />
+    </div>
+  );
+};
 
 export default Index;
